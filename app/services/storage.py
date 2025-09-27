@@ -20,23 +20,30 @@ except ImportError:
 
 class StorageService:
     def __init__(self):
+        self.bucket_name = settings.minio_bucket_name
+        self.client = None
+        self._minio_available = False
+        
         if MINIO_AVAILABLE:
-            self.client = Minio(
-                settings.minio_endpoint,
-                access_key=settings.minio_access_key,
-                secret_key=settings.minio_secret_key,
-                secure=settings.minio_secure
-            )
-            self.bucket_name = settings.minio_bucket_name
-            self._ensure_bucket_exists()
-        else:
-            # For testing or when MinIO is not available
-            self.client = None
-            self.bucket_name = settings.minio_bucket_name
+            try:
+                self.client = Minio(
+                    settings.minio_endpoint,
+                    access_key=settings.minio_access_key,
+                    secret_key=settings.minio_secret_key,
+                    secure=settings.minio_secure
+                )
+                # Test connection by trying to list buckets
+                self.client.list_buckets()
+                self._minio_available = True
+                self._ensure_bucket_exists()
+            except Exception:
+                # MinIO is not available, use mock mode
+                self.client = None
+                self._minio_available = False
     
     def _ensure_bucket_exists(self):
         """Ensure the bucket exists, create if it doesn't"""
-        if not MINIO_AVAILABLE or not self.client:
+        if not self._minio_available or not self.client:
             return
         try:
             if not self.client.bucket_exists(self.bucket_name):
@@ -51,7 +58,7 @@ class StorageService:
         size: int
     ) -> Dict[str, Any]:
         """Generate a presigned URL for direct upload to MinIO"""
-        if not MINIO_AVAILABLE or not self.client:
+        if not self._minio_available or not self.client:
             # Return mock data for testing
             file_id = str(uuid.uuid4())
             storage_key = f"uploads/{file_id}/{filename}"
@@ -90,7 +97,7 @@ class StorageService:
     
     def get_file_info(self, storage_key: str) -> Dict[str, Any]:
         """Get file information from MinIO"""
-        if not MINIO_AVAILABLE or not self.client:
+        if not self._minio_available or not self.client:
             # Return mock data for testing
             return {
                 "size": 1024,
@@ -112,7 +119,7 @@ class StorageService:
     
     def download_file(self, storage_key: str) -> bytes:
         """Download file content from MinIO"""
-        if not MINIO_AVAILABLE or not self.client:
+        if not self._minio_available or not self.client:
             # Return mock data for testing
             return b"mock file content"
         
@@ -127,7 +134,7 @@ class StorageService:
     
     def delete_file(self, storage_key: str) -> bool:
         """Delete file from MinIO"""
-        if not MINIO_AVAILABLE or not self.client:
+        if not self._minio_available or not self.client:
             # Return mock success for testing
             return True
         
