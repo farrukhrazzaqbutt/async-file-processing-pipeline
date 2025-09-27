@@ -1,5 +1,5 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form
 from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import User
@@ -40,7 +40,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(username: str, password: str, db: Session = Depends(get_db)):
+def login(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     """Login and get access token"""
     user = authenticate_user(db, username, password)
     if not user:

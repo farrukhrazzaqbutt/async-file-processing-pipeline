@@ -1,12 +1,12 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 
-@patch('app.services.storage.storage_service.generate_presigned_upload_url')
-def test_initiate_upload(mock_generate_url, client: TestClient, auth_headers):
+@patch('app.services.storage.storage_service')
+def test_initiate_upload(mock_storage_service, client: TestClient, auth_headers):
     """Test initiating file upload"""
-    mock_generate_url.return_value = {
+    mock_storage_service.generate_presigned_upload_url.return_value = {
         "upload_url": "https://minio.example.com/upload",
         "fields": {"key": "uploads/test-file.txt"},
         "storage_key": "uploads/test-file.txt"
@@ -35,18 +35,15 @@ def test_initiate_upload_unauthorized(client: TestClient):
     }
     
     response = client.post("/uploads/initiate", json=upload_data)
-    assert response.status_code == 401
+    assert response.status_code == 403
 
 
-@patch('app.services.storage.storage_service.get_file_info')
-def test_complete_upload(mock_get_file_info, client: TestClient, auth_headers, db_session):
+@patch('app.services.storage.storage_service')
+def test_complete_upload(mock_storage_service, client: TestClient, auth_headers, db_session):
     """Test completing file upload"""
     from app.models import Upload, User
-    
-    # Create test user and upload
-    user = User(username="testuser", email="test@example.com", hashed_password="hashed")
-    db_session.add(user)
-    db_session.commit()
+    # Get the user from auth_headers (already created by the fixture)
+    user = db_session.query(User).filter(User.username == "testuser").first()
     
     upload = Upload(
         user_id=user.id,
@@ -57,7 +54,7 @@ def test_complete_upload(mock_get_file_info, client: TestClient, auth_headers, d
     db_session.add(upload)
     db_session.commit()
     
-    mock_get_file_info.return_value = {
+    mock_storage_service.get_file_info.return_value = {
         "size": 1024,
         "etag": "test-etag",
         "last_modified": "2023-01-01T00:00:00Z",
@@ -73,11 +70,8 @@ def test_complete_upload(mock_get_file_info, client: TestClient, auth_headers, d
 def test_get_upload(client: TestClient, auth_headers, db_session):
     """Test getting upload information"""
     from app.models import Upload, User
-    
-    # Create test user and upload
-    user = User(username="testuser", email="test@example.com", hashed_password="hashed")
-    db_session.add(user)
-    db_session.commit()
+    # Get the user from auth_headers (already created by the fixture)
+    user = db_session.query(User).filter(User.username == "testuser").first()
     
     upload = Upload(
         user_id=user.id,

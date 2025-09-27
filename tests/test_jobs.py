@@ -1,18 +1,27 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 
-@patch('app.workers.tasks.process_file_job.delay')
+@patch('app.routers.jobs.process_file_job')
 def test_create_job(mock_process_job, client: TestClient, auth_headers, db_session):
     """Test creating a processing job"""
     from app.models import Upload, User
     
-    # Create test user and upload
-    user = User(username="testuser", email="test@example.com", hashed_password="hashed")
-    db_session.add(user)
-    db_session.commit()
+    # Get the user from auth_headers (already created by the fixture)
+    user = db_session.query(User).filter(User.username == "testuser").first()
+    if not user:
+        # Create user if it doesn't exist
+        from app.auth import get_password_hash
+        user = User(
+            username="testuser",
+            email="test@example.com",
+            hashed_password=get_password_hash("test123")
+        )
+        db_session.add(user)
+        db_session.commit()
     
+    # Create upload for this user
     upload = Upload(
         user_id=user.id,
         storage_key="uploads/test-file.txt",
@@ -35,7 +44,7 @@ def test_create_job(mock_process_job, client: TestClient, auth_headers, db_sessi
     assert data["status"] == "pending"
     
     # Verify job was queued
-    mock_process_job.assert_called_once()
+    mock_process_job.delay.assert_called_once()
 
 
 def test_create_job_upload_not_found(client: TestClient, auth_headers):
@@ -53,10 +62,18 @@ def test_create_job_upload_not_completed(client: TestClient, auth_headers, db_se
     """Test creating job with incomplete upload"""
     from app.models import Upload, User
     
-    # Create test user and upload
-    user = User(username="testuser", email="test@example.com", hashed_password="hashed")
-    db_session.add(user)
-    db_session.commit()
+    # Get the user from auth_headers (already created by the fixture)
+    user = db_session.query(User).filter(User.username == "testuser").first()
+    if not user:
+        # Create user if it doesn't exist
+        from app.auth import get_password_hash
+        user = User(
+            username="testuser",
+            email="test@example.com",
+            hashed_password=get_password_hash("test123")
+        )
+        db_session.add(user)
+        db_session.commit()
     
     upload = Upload(
         user_id=user.id,
@@ -80,10 +97,18 @@ def test_get_job(client: TestClient, auth_headers, db_session):
     """Test getting job information"""
     from app.models import Job, Upload, User
     
-    # Create test user, upload, and job
-    user = User(username="testuser", email="test@example.com", hashed_password="hashed")
-    db_session.add(user)
-    db_session.commit()
+    # Get the user from auth_headers (already created by the fixture)
+    user = db_session.query(User).filter(User.username == "testuser").first()
+    if not user:
+        # Create user if it doesn't exist
+        from app.auth import get_password_hash
+        user = User(
+            username="testuser",
+            email="test@example.com",
+            hashed_password=get_password_hash("test123")
+        )
+        db_session.add(user)
+        db_session.commit()
     
     upload = Upload(
         user_id=user.id,
@@ -114,10 +139,18 @@ def test_list_jobs(client: TestClient, auth_headers, db_session):
     """Test listing user's jobs"""
     from app.models import Job, Upload, User
     
-    # Create test user, upload, and jobs
-    user = User(username="testuser", email="test@example.com", hashed_password="hashed")
-    db_session.add(user)
-    db_session.commit()
+    # Get the user from auth_headers (already created by the fixture)
+    user = db_session.query(User).filter(User.username == "testuser").first()
+    if not user:
+        # Create user if it doesn't exist
+        from app.auth import get_password_hash
+        user = User(
+            username="testuser",
+            email="test@example.com",
+            hashed_password=get_password_hash("test123")
+        )
+        db_session.add(user)
+        db_session.commit()
     
     upload = Upload(
         user_id=user.id,

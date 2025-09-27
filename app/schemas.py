@@ -32,7 +32,7 @@ class JobKind(str, Enum):
 # User schemas
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
-    email: str = Field(..., regex=r'^[\w\.-]+@[\w\.-]+\.\w+$')
+    email: str = Field(..., pattern=r'^[\w\.-]+@[\w\.-]+\.\w+$')
 
 
 class UserCreate(UserBase):
@@ -107,8 +107,8 @@ class JobResponse(BaseModel):
 
 # Webhook schemas
 class WebhookEndpointCreate(BaseModel):
-    url: str = Field(..., regex=r'^https?://')
-    secret: str = Field(..., min_length=16, max_length=255)
+    url: str = Field(..., pattern=r'^https?://')
+    secret: Optional[str] = Field(None, min_length=16, max_length=255)
 
 
 class WebhookEndpoint(BaseModel):
