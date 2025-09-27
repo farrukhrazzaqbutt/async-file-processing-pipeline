@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Async File Processing Pipeline CI
 
 on:
   push:

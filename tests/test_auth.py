@@ -20,10 +20,14 @@ def test_register_user(client: TestClient, test_user_data):
 
 def test_register_duplicate_user(client: TestClient, test_user_data):
     """Test registering duplicate user fails"""
-    # Try to register same user again (user might already exist from previous test)
-    response = client.post("/auth/register", json=test_user_data)
-    assert response.status_code == 400
-    assert "already registered" in response.json()["detail"]
+    # First register the user
+    response1 = client.post("/auth/register", json=test_user_data)
+    assert response1.status_code in [200, 400]  # User might already exist
+    
+    # Try to register same user again
+    response2 = client.post("/auth/register", json=test_user_data)
+    assert response2.status_code == 400
+    assert "already registered" in response2.json()["detail"]
 
 
 def test_login_success(client: TestClient, test_user_data):
